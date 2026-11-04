@@ -5,3 +5,4 @@ spring:
     password: ${TEST_DB_PASSWORD:}
 app:
   seed-demo: false
+  rate-limit-multiplier: 0

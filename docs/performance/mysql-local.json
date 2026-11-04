@@ -1,0 +1,89 @@
+{
+  "measuredAt" : "2026-11-04T15:36:24.707494600Z",
+  "scope" : "In-process transactional service benchmark; excludes HTTP, authentication and rate limiter; single local hot event per run",
+  "java" : "17",
+  "os" : "Windows 10",
+  "processors" : 20,
+  "database" : "8.0.46",
+  "poolSize" : 20,
+  "dataset" : {
+    "users" : 2000,
+    "registrations" : 50000,
+    "events" : 20000
+  },
+  "runs" : [ {
+    "operation" : "registration",
+    "success" : 400,
+    "rowLockWaitMsDelta" : 0,
+    "p95Ms" : 14.769,
+    "requests" : 400,
+    "concurrency" : 1,
+    "throughputPerSecond" : 104.56318715495618,
+    "p50Ms" : 9.2608,
+    "rowLockWaitCountDelta" : 0,
+    "seconds" : 3.8254381
+  }, {
+    "operation" : "registration",
+    "success" : 400,
+    "rowLockWaitMsDelta" : 18939,
+    "p95Ms" : 69.7891,
+    "requests" : 400,
+    "concurrency" : 8,
+    "throughputPerSecond" : 142.10145240828746,
+    "p50Ms" : 56.0911,
+    "rowLockWaitCountDelta" : 399,
+    "seconds" : 2.8148903
+  }, {
+    "operation" : "registration",
+    "success" : 400,
+    "rowLockWaitMsDelta" : 51046,
+    "p95Ms" : 252.1872,
+    "requests" : 400,
+    "concurrency" : 32,
+    "throughputPerSecond" : 143.72734520178656,
+    "p50Ms" : 218.9711,
+    "rowLockWaitCountDelta" : 399,
+    "seconds" : 2.7830473
+  }, {
+    "operation" : "checkin_shared_event_lock",
+    "success" : 400,
+    "rowLockWaitMsDelta" : 0,
+    "p95Ms" : 7.2418,
+    "requests" : 400,
+    "concurrency" : 1,
+    "throughputPerSecond" : 168.2922222781794,
+    "p50Ms" : 5.9176,
+    "rowLockWaitCountDelta" : 0,
+    "seconds" : 2.3768181
+  }, {
+    "operation" : "checkin_shared_event_lock",
+    "success" : 400,
+    "rowLockWaitMsDelta" : 0,
+    "p95Ms" : 10.8903,
+    "requests" : 400,
+    "concurrency" : 8,
+    "throughputPerSecond" : 908.2957374589337,
+    "p50Ms" : 8.5917,
+    "rowLockWaitCountDelta" : 0,
+    "seconds" : 0.4403852
+  }, {
+    "operation" : "checkin_shared_event_lock",
+    "success" : 400,
+    "rowLockWaitMsDelta" : 0,
+    "p95Ms" : 27.2511,
+    "requests" : 400,
+    "concurrency" : 32,
+    "throughputPerSecond" : 2090.6812066575653,
+    "p50Ms" : 13.0361,
+    "rowLockWaitCountDelta" : 0,
+    "seconds" : 0.1913252
+  } ],
+  "explainAnalyze" : {
+    "allEvents" : "-> Limit: 20 row(s)  (cost=0.0602 rows=20) (actual time=0.0385..0.105 rows=20 loops=1)\n    -> Index scan on campus_event using idx_event_starts (reverse)  (cost=0.0602 rows=20) (actual time=0.0374..0.104 rows=20 loops=1)\n",
+    "category" : "-> Limit: 20 row(s)  (cost=669 rows=20) (actual time=0.244..0.349 rows=20 loops=1)\n    -> Index lookup on campus_event using idx_event_category (category='TECH') (reverse)  (cost=669 rows=5007) (actual time=0.242..0.345 rows=20 loops=1)\n",
+    "containsSearch" : "-> Limit: 20 row(s)  (cost=1.64 rows=4.2) (actual time=0.839..12.6 rows=20 loops=1)\n    -> Filter: ((campus_event.title like '%199%') or (campus_event.location like '%199%'))  (cost=1.64 rows=4.2) (actual time=0.837..12.6 rows=20 loops=1)\n        -> Index scan on campus_event using idx_event_starts (reverse)  (cost=1.64 rows=20) (actual time=0.167..10.8 rows=4326 loops=1)\n",
+    "containsSearchCount" : "-> Aggregate: count(0)  (cost=2399 rows=1) (actual time=12.8..12.8 rows=1 loops=1)\n    -> Filter: ((campus_event.title like '%199%') or (campus_event.location like '%199%'))  (cost=1992 rows=4063) (actual time=0.138..12.7 rows=140 loops=1)\n        -> Table scan on campus_event  (cost=1992 rows=19360) (actual time=0.0498..6.61 rows=20007 loops=1)\n",
+    "bookings" : "-> Limit: 20 row(s)  (cost=22.4 rows=20) (actual time=0.231..0.308 rows=20 loops=1)\n    -> Nested loop inner join  (cost=22.4 rows=32) (actual time=0.231..0.306 rows=20 loops=1)\n        -> Index lookup on r using idx_registration_user (user_id=1) (reverse)  (cost=11.2 rows=32) (actual time=0.21..0.218 rows=20 loops=1)\n        -> Single-row index lookup on e using PRIMARY (id=r.event_id)  (cost=0.253 rows=1) (actual time=0.00409..0.00411 rows=1 loops=20)\n",
+    "attendees" : "-> Limit: 20 row(s)  (cost=1069 rows=20) (actual time=0.205..0.226 rows=20 loops=1)\n    -> Nested loop inner join  (cost=1069 rows=2000) (actual time=0.205..0.225 rows=20 loops=1)\n        -> Index lookup on r using idx_attendees_page (event_id=1) (reverse)  (cost=369 rows=2000) (actual time=0.196..0.2 rows=20 loops=1)\n        -> Single-row index lookup on u using PRIMARY (id=r.user_id)  (cost=0.25 rows=1) (actual time=0.00105..0.00108 rows=1 loops=20)\n"
+  }
+}

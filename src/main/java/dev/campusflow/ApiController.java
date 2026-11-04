@@ -34,13 +34,21 @@ class ApiController {
     }
     @GetMapping("/events/{id}") Event detail(@PathVariable long id) { return events.event(id); }
     @GetMapping("/stats") Stats stats() { return events.stats(); }
-    @GetMapping("/registrations") Object mine(Principal principal) { return events.bookings(events.member(principal.getName()).id()); }
+    @GetMapping("/registrations") Object mine(Principal principal, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+        return events.bookings(events.member(principal.getName()).id(), page, size);
+    }
+    @GetMapping("/registrations/states") Object states(Principal principal, @RequestParam java.util.List<Long> eventIds) {
+        return events.bookingStates(events.member(principal.getName()).id(), eventIds);
+    }
+    @GetMapping("/registrations/history") Object history(Principal principal, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+        return events.operations(null, events.member(principal.getName()).id(), page, size);
+    }
     @PostMapping("/events/{id}/registrations") @ResponseStatus(HttpStatus.CREATED)
     Object register(@PathVariable long id, Principal principal) {
         return Map.of("id", events.register(id, events.member(principal.getName()).id()), "message", "报名成功");
     }
-    @DeleteMapping("/events/{id}/registrations") Object cancel(@PathVariable long id, Principal principal) {
-        events.cancel(id, events.member(principal.getName()).id()); return Map.of("message", "报名已取消，名额已释放");
+    @DeleteMapping("/events/{id}/registrations") Object cancel(@PathVariable long id, Principal principal, @Valid @RequestBody(required = false) Reason input) {
+        events.cancel(id, events.member(principal.getName()).id(), input == null ? "学生取消报名" : input.reason()); return Map.of("message", "报名已取消，名额已释放");
     }
     @PostMapping("/events/{id}/check-in") Object checkIn(@PathVariable long id, @Valid @RequestBody CheckIn input, Principal principal) {
         events.checkIn(id, events.member(principal.getName()).id(), input.code()); return Map.of("message", "签到成功");
@@ -49,6 +57,15 @@ class ApiController {
     Object create(@Valid @RequestBody EventInput input, Principal principal) {
         return Map.of("id", events.create(input, events.member(principal.getName()).id()), "message", "活动发布成功");
     }
-    @GetMapping("/admin/events/{id}/attendees") Object attendees(@PathVariable long id) { return events.attendees(id); }
-    @GetMapping("/admin/events/{id}/checkin-code") Object code(@PathVariable long id) { return Map.of("code", events.checkinCode(id)); }
+    @GetMapping("/admin/events/{id}/attendees") Object attendees(@PathVariable long id, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) { return events.attendees(id, page, size); }
+    @GetMapping("/admin/events/{id}/checkin-code") Object code(@PathVariable long id) { return events.checkinCode(id); }
+    @PostMapping("/admin/events/{id}/checkin-code") Object rotate(@PathVariable long id, Principal principal) { return events.rotateCode(id, events.member(principal.getName()).id()); }
+    @PostMapping("/admin/events/{id}/cancel") Object cancelEvent(@PathVariable long id, @Valid @RequestBody Reason reason, Principal principal) {
+        events.cancelEvent(id, events.member(principal.getName()).id(), reason.reason()); return Map.of("message", "活动已取消，未签到报名已取消，历史记录已保留");
+    }
+    @GetMapping("/admin/events/{id}/history") Object audit(@PathVariable long id, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) { return events.operations(id, null, page, size); }
+    @GetMapping("/admin/users") Object users(@RequestParam(defaultValue = "") String username, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) { return events.members(username, page, size); }
+    @PostMapping("/admin/users/{id}/verify") Object verify(@PathVariable long id, @Valid @RequestBody Verification input) {
+        events.verifyIdentity(id, input.campusId()); return Map.of("message", "校园身份核验已记录");
+    }
 }

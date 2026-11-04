@@ -42,12 +42,13 @@ class CampusFlowIntegrationTest {
     }
 
     @BeforeEach void setup() {
-        db.update("DELETE FROM registration"); db.update("DELETE FROM campus_event"); db.update("DELETE FROM app_user");
+        db.update("DELETE FROM operation_log"); db.update("DELETE FROM registration"); db.update("DELETE FROM campus_event"); db.update("DELETE FROM app_user");
         admin = addUser("admin", "ADMIN"); student = addUser("student", "STUDENT");
     }
 
     long addUser(String name, String role) {
         db.update("INSERT INTO app_user (username, password_hash, full_name, role) VALUES (?, ?, ?, ?)", name, encoder.encode("Test12345!"), name, role);
+        db.update("UPDATE app_user SET campus_id = ?, verified_at = ? WHERE username = ?", "CAMPUS-" + name, NOW, name);
         return db.queryForObject("SELECT id FROM app_user WHERE username = ?", Long.class, name);
     }
     long event(int capacity) { return service.create(input(capacity), admin); }
@@ -106,8 +107,8 @@ class CampusFlowIntegrationTest {
             .andExpect(status().isForbidden());
         mvc.perform(post("/api/admin/events").with(user("student").roles("STUDENT")).with(csrf()).contentType("application/json").content(json.writeValueAsString(input(5))))
             .andExpect(status().isForbidden());
-        mvc.perform(get("/api/registrations").with(user("admin").roles("ADMIN"))).andExpect(jsonPath("$.length()").value(0));
-        mvc.perform(get("/api/registrations").with(user("student").roles("STUDENT"))).andExpect(jsonPath("$.length()").value(1));
+        mvc.perform(get("/api/registrations").with(user("admin").roles("ADMIN"))).andExpect(jsonPath("$.items.length()").value(0));
+        mvc.perform(get("/api/registrations").with(user("student").roles("STUDENT"))).andExpect(jsonPath("$.items.length()").value(1));
         mvc.perform(delete("/api/events/" + id + "/registrations").with(user("admin").roles("ADMIN")).with(csrf()))
             .andExpect(status().isConflict());
         assertThat(reserved(id)).isEqualTo(1);
@@ -120,9 +121,9 @@ class CampusFlowIntegrationTest {
         long id = db.queryForObject("SELECT id FROM campus_event", Long.class);
         mvc.perform(post("/api/events/" + id + "/registrations").with(user("student")).with(csrf())).andExpect(status().isCreated());
         mvc.perform(get("/api/admin/events/" + id + "/attendees").with(user("admin").roles("ADMIN")))
-            .andExpect(status().isOk()).andExpect(jsonPath("$[0].username").value("student"));
+            .andExpect(status().isOk()).andExpect(jsonPath("$.items[0].username").value("student"));
         mvc.perform(get("/api/admin/events/" + id + "/checkin-code").with(user("admin").roles("ADMIN")))
-            .andExpect(status().isOk()).andExpect(jsonPath("$.code").isNotEmpty());
+            .andExpect(status().isOk()).andExpect(jsonPath("$.code").value(""));
     }
 
     @Test void duplicateRegistrationAndFullCapacityRollbackWithoutCountDrift() {
@@ -154,9 +155,10 @@ class CampusFlowIntegrationTest {
 
     @Test void checkinEnforcesTimeCodeRegistrationAndSingleTransition() {
         long id = event(4); service.register(id, student);
-        String code = service.checkinCode(id);
-        assertThatThrownBy(() -> service.checkIn(id, student, code)).hasMessageContaining("开放时间");
+        final String inactiveCode = service.checkinCode(id).code();
+        assertThatThrownBy(() -> service.checkIn(id, student, inactiveCode)).hasMessageContaining("开放时间");
         db.update("UPDATE campus_event SET registration_deadline = ?, starts_at = ?, ends_at = ? WHERE id = ?", NOW.minusHours(1), NOW.plusMinutes(20), NOW.plusHours(2), id);
+        String code = service.rotateCode(id, admin).code();
         assertThatThrownBy(() -> service.checkIn(id, student, "BADCODE")).hasMessageContaining("错误");
         assertThatThrownBy(() -> service.checkIn(id, admin, code)).hasMessageContaining("先报名");
         service.checkIn(id, student, code.toLowerCase(java.util.Locale.ROOT));
@@ -166,7 +168,7 @@ class CampusFlowIntegrationTest {
         assertThat(service.stats().attended()).isEqualTo(1);
         assertThat(reserved(id)).isEqualTo(1);
         db.update("UPDATE campus_event SET ends_at = ?, starts_at = ?, registration_deadline = ? WHERE id = ?", NOW.minusMinutes(1), NOW.minusHours(2), NOW.minusHours(3), id);
-        assertThatThrownBy(() -> service.checkIn(id, student, code)).hasMessageContaining("开放时间");
+        assertThatThrownBy(() -> service.checkIn(id, student, inactiveCode)).hasMessageContaining("开放时间");
     }
 
     @Test void thirtyConcurrentRequestsForFiveSeatsNeverOversell() throws Exception {
@@ -188,6 +190,159 @@ class CampusFlowIntegrationTest {
         assertThat(results.stream().filter(result -> result == 409).count()).isEqualTo(11);
         assertThat(reserved(id)).isEqualTo(1);
         assertThat(db.queryForObject("SELECT COUNT(*) FROM registration WHERE event_id = ?", Integer.class, id)).isEqualTo(1);
+    }
+
+    @Test void insertFailureAfterIncrementRollsBackSeatAndAudit() {
+        long id = event(2);
+        db.execute("ALTER TABLE registration ADD CONSTRAINT test_reject_insert CHECK (event_id <> " + id + ")");
+        try {
+            assertThatThrownBy(() -> service.register(id, student)).isInstanceOf(org.springframework.dao.DataAccessException.class);
+            assertThat(reserved(id)).isZero();
+            assertThat(db.queryForObject("SELECT COUNT(*) FROM registration WHERE event_id = ?", Long.class, id)).isZero();
+            assertThat(db.queryForObject("SELECT COUNT(*) FROM operation_log WHERE event_id = ? AND action = 'REGISTERED'", Long.class, id)).isZero();
+        } finally {
+            String product = db.execute((org.springframework.jdbc.core.ConnectionCallback<String>) c -> c.getMetaData().getDatabaseProductName());
+            db.execute("ALTER TABLE registration DROP " + (product.equals("MySQL") ? "CHECK" : "CONSTRAINT") + " test_reject_insert");
+        }
+        service.register(id, student); assertThat(reserved(id)).isEqualTo(1);
+    }
+
+    @Test void mixedRegistrationCancellationAndCheckinKeepCountsAndHistory() throws Exception {
+        long id = event(10);
+        db.update("UPDATE campus_event SET registration_deadline = ?, starts_at = ?, ends_at = ? WHERE id = ?", NOW.plusMinutes(10), NOW.plusMinutes(20), NOW.plusHours(2), id);
+        String code = service.rotateCode(id, admin).code();
+        var users = new ArrayList<Long>();
+        for (int i = 0; i < 24; i++) users.add(addUser("mixed" + i, "STUDENT"));
+        var pool = Executors.newFixedThreadPool(24); var start = new CountDownLatch(1);
+        var futures = new ArrayList<Future<?>>();
+        try {
+            for (int index = 0; index < 96; index++) {
+                final int task = index; long uid = users.get(index % users.size());
+                futures.add(pool.submit(() -> {
+                    start.await();
+                    for (int round = 0; round < 5; round++) {
+                        try {
+                            switch ((task + round) % 3) {
+                                case 0 -> service.register(id, uid);
+                                case 1 -> service.cancel(id, uid, "并发取消");
+                                default -> service.checkIn(id, uid, code);
+                            }
+                        } catch (ApiException ex) { assertThat(ex.status).isIn(400, 409); }
+                    }
+                    return null;
+                }));
+            }
+            start.countDown(); for (var f : futures) f.get(60, TimeUnit.SECONDS);
+        } finally { pool.shutdownNow(); }
+        long active = db.queryForObject("SELECT COUNT(*) FROM registration WHERE event_id = ? AND status <> 'CANCELLED'", Long.class, id);
+        assertThat(reserved(id)).isEqualTo((int) active).isBetween(0, 10);
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM (SELECT user_id FROM registration WHERE event_id = ? GROUP BY user_id HAVING COUNT(*) > 1) duplicates", Long.class, id)).isZero();
+        long increments = db.queryForObject("SELECT COUNT(*) FROM operation_log WHERE event_id = ? AND action IN ('REGISTERED', 'REREGISTERED')", Long.class, id);
+        long decrements = db.queryForObject("SELECT COUNT(*) FROM operation_log WHERE event_id = ? AND action = 'CANCELLED'", Long.class, id);
+        assertThat(increments - decrements).isEqualTo(active);
+        long attended = db.queryForObject("SELECT COUNT(*) FROM registration WHERE event_id = ? AND status = 'ATTENDED'", Long.class, id);
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM operation_log WHERE event_id = ? AND action = 'ATTENDED'", Long.class, id)).isEqualTo(attended);
+    }
+
+    @Test void eventCancellationSerializesWithRegistrationAndCheckin() throws Exception {
+        long id = event(10);
+        service.register(id, student);
+        db.update("UPDATE campus_event SET registration_deadline = ?, starts_at = ?, ends_at = ? WHERE id = ?", NOW.plusMinutes(10), NOW.plusMinutes(20), NOW.plusHours(2), id);
+        String code = service.rotateCode(id, admin).code();
+        var pool = Executors.newFixedThreadPool(3); var gate = new CountDownLatch(1);
+        try {
+            var tasks = java.util.List.<Callable<Void>>of(
+                () -> { gate.await(); service.cancelEvent(id, admin, "场地维护"); return null; },
+                () -> { gate.await(); try { service.checkIn(id, student, code); } catch (ApiException e) { assertThat(e.status).isEqualTo(409); } return null; },
+                () -> { gate.await(); try { service.register(id, admin); } catch (ApiException e) { assertThat(e.status).isEqualTo(409); } return null; });
+            var futures = new ArrayList<Future<Void>>(); for (var t : tasks) futures.add(pool.submit(t));
+            gate.countDown(); for (var f : futures) f.get(30, TimeUnit.SECONDS);
+        } finally { pool.shutdownNow(); }
+        assertThat(service.event(id).lifecycle()).isEqualTo("CANCELLED");
+        long attended = db.queryForObject("SELECT COUNT(*) FROM registration WHERE event_id = ? AND status = 'ATTENDED'", Long.class, id);
+        assertThat(reserved(id)).isEqualTo((int) attended);
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM registration WHERE event_id = ? AND status = 'REGISTERED'", Long.class, id)).isZero();
+        assertThatThrownBy(() -> service.register(id, student)).hasMessageContaining("取消");
+    }
+
+    @Test void historyPreservesEveryTransitionAndCancellationReason() {
+        long id = event(3); service.register(id, student); service.cancel(id, student, "课程冲突"); service.register(id, student);
+        assertThat(service.operations(id, null, 0, 20).items()).extracting(Operation::action)
+            .containsExactly("REREGISTERED", "CANCELLED", "REGISTERED", "EVENT_PUBLISHED");
+        assertThat(service.operations(null, student, 0, 20).items()).extracting(Operation::reason).contains("课程冲突");
+        service.cancelEvent(id, admin, "天气原因");
+        assertThat(service.event(id).cancellationReason()).isEqualTo("天气原因");
+        assertThat(reserved(id)).isZero(); assertThat(bookingStatus(id, student)).isEqualTo("CANCELLED");
+    }
+
+    @Test void identityMustBeVerifiedAndCampusIdCannotBeReused() {
+        long id = event(3); long pending = addUser("pending", "STUDENT");
+        db.update("UPDATE app_user SET campus_id = NULL, verified_at = NULL WHERE id = ?", pending);
+        assertThatThrownBy(() -> service.register(id, pending)).hasMessageContaining("核验");
+        service.verifyIdentity(pending, "20260001"); service.register(id, pending);
+        long second = addUser("pending2", "STUDENT");
+        db.update("UPDATE app_user SET campus_id = NULL, verified_at = NULL WHERE id = ?", second);
+        assertThatThrownBy(() -> service.verifyIdentity(second, "20260001")).isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+        assertThat(service.member("pending2").verified()).isFalse();
+    }
+
+    @Test void codeRotationInvalidatesOldCodeAndExpiryIsEnforced() {
+        long id = event(3); service.register(id, student);
+        db.update("UPDATE campus_event SET registration_deadline = ?, starts_at = ?, ends_at = ? WHERE id = ?", NOW.plusMinutes(10), NOW.plusMinutes(20), NOW.plusHours(2), id);
+        var first = service.rotateCode(id, admin); var second = service.rotateCode(id, admin);
+        assertThat(first.code()).isNotEqualTo(second.code()); assertThat(second.expiresAt()).isEqualTo(NOW.plusMinutes(2));
+        assertThatThrownBy(() -> service.checkIn(id, student, first.code())).hasMessageContaining("错误");
+        db.update("UPDATE campus_event SET checkin_expires_at = ? WHERE id = ?", NOW, id);
+        assertThatThrownBy(() -> service.checkIn(id, student, second.code())).hasMessageContaining("过期");
+        assertThat(bookingStatus(id, student)).isEqualTo("REGISTERED");
+    }
+
+    @Test void pagedEndpointsValidateBoundsAndStayPrivate() throws Exception {
+        for (int i = 0; i < 3; i++) service.register(event(3), student);
+        mvc.perform(get("/api/registrations?size=2&page=0").with(user("student"))).andExpect(jsonPath("$.total").value(3)).andExpect(jsonPath("$.items.length()").value(2));
+        mvc.perform(get("/api/registrations?size=2&page=1").with(user("student"))).andExpect(jsonPath("$.items.length()").value(1));
+        mvc.perform(get("/api/registrations?size=51").with(user("student"))).andExpect(status().isBadRequest());
+        mvc.perform(get("/api/registrations/history").with(user("admin").roles("ADMIN"))).andExpect(jsonPath("$.total").value(0));
+        mvc.perform(get("/api/admin/users").with(user("student"))).andExpect(status().isForbidden());
+    }
+
+    @Test void auditWriteFailureRollsBackBothBookingAndCapacity() {
+        long id = event(2);
+        db.execute("ALTER TABLE operation_log ADD CONSTRAINT test_reject_audit CHECK (action <> 'REGISTERED')");
+        try {
+            assertThatThrownBy(() -> service.register(id, student)).isInstanceOf(org.springframework.dao.DataAccessException.class);
+            assertThat(reserved(id)).isZero();
+            assertThat(db.queryForObject("SELECT COUNT(*) FROM registration WHERE event_id = ?", Long.class, id)).isZero();
+        } finally {
+            String product = db.execute((org.springframework.jdbc.core.ConnectionCallback<String>) c -> c.getMetaData().getDatabaseProductName());
+            db.execute("ALTER TABLE operation_log DROP " + (product.equals("MySQL") ? "CHECK" : "CONSTRAINT") + " test_reject_audit");
+        }
+    }
+
+    @Test void studentsCannotVerifyIdentityOrRotateCodesAndExpiredCsrfReturns401() throws Exception {
+        long id = event(3);
+        mvc.perform(post("/api/admin/users/" + student + "/verify").with(user("student")).with(csrf())
+            .contentType("application/json").content("{\"campusId\":\"202600099\"}"))
+            .andExpect(status().isForbidden());
+        mvc.perform(post("/api/admin/events/" + id + "/checkin-code").with(user("student")).with(csrf()))
+            .andExpect(status().isForbidden());
+        mvc.perform(post("/api/events/" + id + "/registrations")).andExpect(status().isUnauthorized());
+        service.register(id, student);
+        mvc.perform(get("/api/admin/events/" + id + "/attendees?size=1&page=0").with(user("admin").roles("ADMIN")))
+            .andExpect(jsonPath("$.total").value(1)).andExpect(jsonPath("$.items.length()").value(1));
+        mvc.perform(get("/api/admin/events/" + id + "/attendees?size=0").with(user("admin").roles("ADMIN")))
+            .andExpect(status().isBadRequest());
+    }
+
+    @Test void simultaneousCheckinsForOneRegistrationWriteOneAttendanceAndAudit() throws Exception {
+        long id = event(3); service.register(id, student);
+        db.update("UPDATE campus_event SET registration_deadline = ?, starts_at = ?, ends_at = ? WHERE id = ?", NOW.plusMinutes(10), NOW.plusMinutes(20), NOW.plusHours(2), id);
+        String code = service.rotateCode(id, admin).code();
+        var results = race(java.util.Collections.nCopies(12, student), uid -> service.checkIn(id, uid, code));
+        assertThat(results.stream().filter(value -> value == 201).count()).isEqualTo(1);
+        assertThat(results.stream().filter(value -> value == 409).count()).isEqualTo(11);
+        assertThat(reserved(id)).isEqualTo(1); assertThat(bookingStatus(id, student)).isEqualTo("ATTENDED");
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM operation_log WHERE event_id = ? AND action = 'ATTENDED'", Long.class, id)).isEqualTo(1);
     }
 
     private java.util.List<Integer> race(java.util.List<Long> users, java.util.function.LongConsumer work) throws Exception {

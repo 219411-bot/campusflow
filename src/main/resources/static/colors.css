@@ -113,6 +113,10 @@ dialog p, .form-stack label { color: #65798d; }
 .code-box { color: #5e4c9c; background: #f0ecfc; }
 th { color: #678298; }
 .toast { background: #216e7e; }
+.admin-row { flex-wrap: wrap; }
+.admin-row > div { flex: 1; min-width: 230px; }
+.admin-row .status { font-size: 9px; vertical-align: middle; }
+#bookings { margin-top: 18px; }
 footer { color: #7b8c9f; }
 
 @media (max-width: 1150px) {

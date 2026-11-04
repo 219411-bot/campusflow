@@ -13,6 +13,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.beans.factory.annotation.Value;
+import java.time.Clock;
 
 @Configuration
 class SecurityConfig {
@@ -25,8 +28,9 @@ class SecurityConfig {
             .stream().findFirst().orElseThrow(() -> new UsernameNotFoundException("账号不存在"));
     }
 
-    @Bean SecurityFilterChain security(HttpSecurity http) throws Exception {
+    @Bean SecurityFilterChain security(HttpSecurity http, Clock clock, @Value("${app.rate-limit-multiplier:1}") int multiplier) throws Exception {
         return http
+            .addFilterBefore(new RequestRateLimiter(clock, multiplier), UsernamePasswordAuthenticationFilter.class)
             .csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                 .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
             .authorizeHttpRequests(auth -> auth
@@ -42,7 +46,11 @@ class SecurityConfig {
                 .logoutSuccessHandler((req, res, auth) -> json(res, 200, "已退出登录")))
             .exceptionHandling(errors -> errors
                 .authenticationEntryPoint((req, res, ex) -> json(res, 401, "请先登录"))
-                .accessDeniedHandler((req, res, ex) -> json(res, 403, "无权限操作或安全令牌失效，请刷新页面")))
+                .accessDeniedHandler((req, res, ex) -> {
+                    var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+                    boolean loggedIn = auth != null && auth.isAuthenticated() && !(auth instanceof org.springframework.security.authentication.AnonymousAuthenticationToken);
+                    json(res, loggedIn ? 403 : 401, loggedIn ? "无权限操作或安全令牌失效，请刷新页面" : "登录已过期，请重新登录");
+                }))
             .build();
     }
 

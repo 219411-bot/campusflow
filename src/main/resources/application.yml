@@ -21,6 +21,9 @@ server:
         http-only: true
         same-site: lax
 spring.web.resources.cache.cachecontrol.max-age: 1h
+app:
+  require-verification: true
+  rate-limit-multiplier: 1
 ---
 spring:
   config:
