@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#254f44"><title>CampusFlow · 让校园生活发生</title><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css"><script src="/app.js" defer></script></head>
+<body>
+  <aside class="sidebar">
+    <a href="#" class="brand"><span class="brand-icon">c<span>f</span></span><span>CampusFlow<small>校园活动与成长空间</small></span></a>
+    <p class="nav-label">你的校园</p>
+    <nav><button class="nav-item active" data-view="discover"><span>◈</span>发现活动<span class="nav-arrow">↗</span></button><button class="nav-item" data-view="mine"><span>▤</span>我的报名</button><button class="nav-item hidden" id="admin-nav" data-view="admin"><span>⊞</span>活动管理</button></nav>
+    <div class="sidebar-note"><span class="note-star">✳</span><strong>在课表之外，<br>发现更多可能。</strong><p>一次交流，一个新朋友，<br>一段值得记录的校园生活。</p></div>
+    <div class="sidebar-bottom"><span class="live-dot"></span> MADE FOR CAMPUS LIFE <span>↗</span></div>
+  </aside>
+  <main>
+    <header class="topbar"><div class="breadcrumb">校园生活 <span>/</span> <b id="breadcrumb">发现活动</b></div><div class="account" id="account"><button class="btn btn-dark small" data-action="login">登录 / 注册 <span>↗</span></button></div></header>
+    <section id="discover-view" class="view">
+      <div class="page-heading"><div><p class="eyebrow">EXPLORE YOUR NEXT CHAPTER</p><h1>让热爱，在校园发生<span class="green">。</span></h1><p class="subtitle">走出课表，遇见同频的人。你的下一段故事，从这里开始。</p></div><span class="term">✳ &nbsp; CAMPUS LIFE</span></div>
+      <div class="hero"><div class="hero-content"><span class="pill">CAMPUS SPOTLIGHT <i></i> 本周精选</span><h2>课表之外，<br>还有更大的世界。</h2><p>技术分享、职业探索、文化艺术与运动。<br>找一个感兴趣的活动，把想法变成行动。</p><a class="hero-link" href="#activity-list">探索全部活动 <span>↗</span></a></div><div class="hero-art" aria-hidden="true"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="art-grid"></div><div class="art-star">✳</div><div class="art-card card-a"><span>LET'S BUILD</span><strong>新的连接<br>正在发生 ↗</strong><small>IDEAS · PEOPLE · POSSIBILITIES</small></div><div class="art-card card-b"><span>YOUR CAMPUS,</span><strong>YOUR<br>STORY.</strong><small>01 — ENDLESS POSSIBILITIES</small></div><span class="art-cross">+</span></div></div>
+      <div class="stats" id="stats"><div class="stat"><span>活动总数</span><strong>—</strong><small>EVENTS</small></div><div class="stat"><span>有效报名</span><strong>—</strong><small>CONNECTIONS</small></div><div class="stat"><span>已签到人次</span><strong>—</strong><small>CHECK-INS</small></div><div class="stat"><span>正在招募</span><strong>—</strong><small>OPEN NOW</small></div></div>
+      <section id="activity-list"><div class="section-heading"><h2>寻找你的下一站 <span id="result-count"></span></h2><label class="search"><span>⌕</span><input id="search" placeholder="搜索活动、地点…" maxlength="100" aria-label="搜索活动"></label></div><div class="filter-row" id="filters"><button class="filter active" data-category="">全部活动</button><button class="filter" data-category="TECH">技术交流</button><button class="filter" data-category="CAREER">职业成长</button><button class="filter" data-category="CULTURE">文化艺术</button><button class="filter" data-category="SPORT">运动健康</button><span class="filter-tip">所有时间均为北京时间</span></div><div class="event-grid" id="events" aria-live="polite"></div><div class="pagination" id="pagination"></div></section>
+    </section>
+    <section id="mine-view" class="view hidden"><div class="page-heading"><div><p class="eyebrow">YOUR NEXT EXPERIENCES</p><h1>我的报名<span class="green">。</span></h1><p class="subtitle">每一次参与，都是成长的足迹。</p></div><button class="btn btn-outline" data-action="refresh-mine">刷新记录 ↻</button></div><div id="bookings"></div></section>
+    <section id="admin-view" class="view hidden"><div class="page-heading"><div><p class="eyebrow">MAKE SOMETHING HAPPEN</p><h1>活动管理<span class="green">。</span></h1><p class="subtitle">发布活动，查看报名，让每一次相聚井然有序。</p></div><button class="btn btn-dark" data-action="create-event">＋ 发布活动</button></div><div id="admin-events" class="admin-list"></div><div class="pagination" id="admin-pagination"></div></section>
+    <footer><span>CampusFlow <span class="footer-dot">•</span> 让校园生活发生</span><span>BUILT FOR CONNECTIONS ↗</span></footer>
+  </main>
+  <dialog id="modal"><button class="modal-close" aria-label="关闭弹窗">×</button><div id="modal-content"></div></dialog>
+  <div id="toast" role="status" class="toast hidden"></div>
+</body></html>
