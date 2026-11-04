@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 220" fill="none">
+  <defs><linearGradient id="bg" x2="480" y2="220" gradientUnits="userSpaceOnUse"><stop stop-color="#145c7a"/><stop offset="1" stop-color="#3892ac"/></linearGradient><linearGradient id="screen" x2="1" y2="1"><stop stop-color="#183956"/><stop offset="1" stop-color="#204962"/></linearGradient></defs>
+  <path fill="url(#bg)" d="M0 0h480v220H0z"/>
+  <circle cx="404" cy="59" r="128" fill="#78cbd5" opacity=".15"/><circle cx="404" cy="59" r="91" stroke="#b4ebee" opacity=".23"/>
+  <path d="M0 179h480M0 203h480M186 0v220M210 0v220M234 0v220" stroke="#bdebf1" opacity=".06"/>
+  <g transform="translate(238 28) rotate(-9 95 80)"><rect x="8" y="9" width="172" height="123" rx="11" fill="#0b3b56" opacity=".2"/><rect width="172" height="123" rx="9" fill="#d1ecf0"/><rect x="7" y="7" width="158" height="108" rx="5" fill="url(#screen)"/><circle cx="17" cy="17" r="2.5" fill="#ffbb9c"/><circle cx="26" cy="17" r="2.5" fill="#ffe8a8"/><circle cx="35" cy="17" r="2.5" fill="#92d9c4"/><path d="m57 48-17 16 17 16m58-32 17 16-17 16M95 40 77 89" stroke="#a6e8df" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M55 99h39m8 0h14" stroke="#83a9bf" stroke-width="3" stroke-linecap="round"/><path d="m-15 127 202 0 15 17c1 4-4 7-10 7H-20c-7 0-10-3-9-7z" fill="#a8d6dd"/><path d="M67 127h42l6 7H60z" fill="#699dab"/></g>
+  <rect x="405" y="145" width="27" height="27" rx="7" transform="rotate(14 405 145)" fill="#ffdb8b"/><path d="m407 151 11 11m0-11-11 11" stroke="#9d702c" stroke-width="2"/>
+  <path d="M216 35v12m-6-6h12" stroke="#a7e2e8" stroke-width="2"/><circle cx="232" cy="183" r="4" fill="#ffd4a4"/><circle cx="441" cy="40" r="3" fill="#c1f4ee"/>
+</svg>

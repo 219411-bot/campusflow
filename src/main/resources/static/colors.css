@@ -1,0 +1,147 @@
+/* A brighter campus palette, with a distinct illustrated poster for each category. */
+:root {
+  --paper: #f5f7fc;
+  --ink: #203346;
+  --muted: #65758a;
+  --green: #176575;
+  --line: #e2e8f0;
+  --lime: #ffdf8b;
+}
+
+body {
+  background: radial-gradient(ellipse at 95% 0, #e9e8ff 0, transparent 36%), var(--paper);
+}
+
+.sidebar { background: #fff; border-right-color: #e4e9f1; }
+.brand-icon { background: linear-gradient(145deg, #137e87, #28556f); color: #fff2a6; box-shadow: 0 4px 12px #17657520; }
+.brand small, .nav-label { color: #78889a; }
+.nav-item { color: #63758a; }
+.nav-item.active { background: #e4f3f3; color: #146471; }
+.note-star { color: #e89b52; }
+.sidebar-note strong { color: #2e4660; }
+.sidebar-note p { color: #708198; }
+.sidebar-bottom { color: #778b9d; }
+.live-dot { background: #26a998; box-shadow: 0 0 0 3px #26a99812; }
+.breadcrumb, .subtitle { color: #687b91; }
+.breadcrumb b { color: #38536a; }
+.eyebrow, .green { color: #178294; }
+.term { background: #fff5dd; color: #89631f; border-color: #eedfb9; }
+
+.hero {
+  background: radial-gradient(ellipse at 100% 0, #6777bb 0, transparent 55%),
+    linear-gradient(115deg, #123c50 0%, #155f70 55%, #45678e 100%);
+  border-radius: 16px;
+  box-shadow: 0 12px 28px #213c6312;
+}
+.hero h2 { font-weight: 600; }
+.hero p { color: #d2e4ee; }
+.pill { background: #ffffff14; border-color: #ffffff30; color: #ffebbc; }
+.pill i { background: #ffc98e; }
+.hero-link { color: #ffe6a1; border-bottom-color: #d9ba77; }
+.art-grid { background-image: linear-gradient(#ffffff0a 1px, transparent 1px), linear-gradient(90deg, #ffffff0a 1px, transparent 1px); }
+.orbit { border-color: #daedff30; }
+.art-star { color: #ffd779; filter: drop-shadow(0 8px 12px #152e5320); }
+.art-card { border-radius: 8px; box-shadow: 0 20px 32px #0b234c33; }
+.card-a { background: #ffe4a0; color: #5c4629; border: 1px solid #ffefc3; }
+.card-b { background: #c7c3f8; color: #3e396d; border: 1px solid #ddd8ff; }
+.art-cross { color: #ffb09c; }
+
+.stats { border: 0; background: transparent; gap: 14px; padding: 0; }
+.stat { border: 1px solid #dce9f0; border-radius: 10px; padding: 19px 20px; background: #e9f5f6; }
+.stat:last-child { border: 1px solid #e0e8c9; }
+.stat:nth-child(2) { background: #eeeaff; border-color: #e2dcf7; }
+.stat:nth-child(3) { background: #fff0e7; border-color: #f4e0d3; }
+.stat:nth-child(4) { background: #f0f5df; }
+.stat > span { color: #526a7b; }
+.stat small { color: #718799; }
+.stat strong { color: #167584; }
+.stat:nth-child(2) strong { color: #7660b4; }
+.stat:nth-child(3) strong { color: #bd7147; }
+.stat:nth-child(4) strong { color: #698340; }
+.section-heading h2 span, .filter-tip { color: #74869b; }
+.search { color: #44778f; }
+.search input { background: #fff; border-color: #dce4ef; }
+.search input:focus { border-color: #3698aa; box-shadow: 0 0 0 3px #3698aa12; }
+.filter { color: #60758c; border-radius: 7px; }
+.filter.active { color: #fff; background: #216e7e; }
+.filter:hover { background: #e4edf5; }
+.filter.active:hover { background: #185c6b; }
+.filter[data-category="TECH"]:not(.active) { color: #327492; }
+.filter[data-category="CAREER"]:not(.active) { color: #aa653f; }
+.filter[data-category="CULTURE"]:not(.active) { color: #8a5cb1; }
+.filter[data-category="SPORT"]:not(.active) { color: #56814c; }
+
+.event-card { border-color: #e2e7f0; border-radius: 13px; box-shadow: 0 3px 12px #2a476006; }
+.event-card:hover { border-color: #becfdc; box-shadow: 0 12px 28px #253f6512; }
+.event-visual { height: 154px; isolation: isolate; color: #fff; }
+.event-visual.TECH { background: #236a8a url('/art/tech.svg') center / cover; color: #fff; }
+.event-visual.CAREER { background: #e59061 url('/art/career.svg') center / cover; color: #563520; }
+.event-visual.CULTURE { background: #8470ba url('/art/culture.svg') center / cover; color: #fff; }
+.event-visual.SPORT { background: #6c9c70 url('/art/sport.svg') center / cover; color: #173d33; }
+.visual-type { font-size: 11px; font-weight: 600; letter-spacing: 2.2px; line-height: 1.85; text-shadow: 0 1px 6px #0000000a; }
+.visual-symbol, .visual-line { display: none; }
+.event-number { opacity: .9; font-size: 8px; letter-spacing: 1.2px; }
+.category-tag { color: #247593; background: #e8f4fa; font-size: 10px; }
+.event-card:has(.CAREER) .category-tag { color: #a25c36; background: #fff0e4; }
+.event-card:has(.CULTURE) .category-tag { color: #8154a8; background: #f1eafa; }
+.event-card:has(.SPORT) .category-tag { color: #537b39; background: #edf4e2; }
+.event-body h3 { color: #2b4056; }
+.meta { color: #6d8094; }
+.event-bottom { border-top-color: #edf0f6; }
+.capacity { color: #75869a; }
+.capacity b { color: #267e8d; }
+.text-btn { color: #1f7187; }
+.closed { color: #8291a2; }
+.progress { background: #eaf0f6; }
+.progress > i { background: linear-gradient(90deg, #2499a7, #70c5b7); }
+.btn-dark { background: #216e7e; box-shadow: 0 3px 8px #216e7e12; }
+.btn-dark:hover { background: #155a69; }
+.btn-outline { border-color: #d6e1ed; color: #4b6d87; }
+.btn-outline:hover { background: #e8f1f7; }
+.avatar { background: #e6e3fa; color: #7661a7; }
+.booking, .admin-row { border-color: #e0e7f1; box-shadow: 0 3px 14px #243d6005; border-radius: 12px; }
+.booking { border-left: 4px solid #8abdbf; }
+.status { background: #e8edff; color: #5874b0; }
+.status.ATTENDED { background: #def3eb; color: #287e67; }
+.status.CANCELLED { background: #f0f2f6; color: #7c8999; }
+dialog { background: #fff; border-color: #dce5f0; box-shadow: 0 30px 80px #16345730; }
+dialog::backdrop { background: #16324b70; }
+.modal-eyebrow { color: #368193; }
+dialog p, .form-stack label { color: #65798d; }
+.detail-meta { background: #eff5fa; }
+.form-stack input, .form-stack textarea, .form-stack select { border-color: #d8e2ec; color: #304d65; }
+.code-box { color: #5e4c9c; background: #f0ecfc; }
+th { color: #678298; }
+.toast { background: #216e7e; }
+footer { color: #7b8c9f; }
+
+@media (max-width: 1150px) {
+  .stat { padding: 16px 13px; }
+  .stats { gap: 10px; }
+}
+@media (max-width: 900px) {
+  .stat { padding: 14px 10px; }
+  .stat > span { font-size: 10px; }
+  .stat small { letter-spacing: .3px; }
+}
+@media (max-width: 650px) {
+  .hero { height: 286px; }
+  .hero-content { width: 100%; padding: 24px 20px; }
+  .hero h2 { font-size: 27px; line-height: 1.48; margin-top: 16px; }
+  .hero p { font-size: 10px; }
+  .hero-art { position: absolute; width: 148px; height: 150px; right: -24px; top: 71px; min-width: 0; opacity: .45; }
+  .card-a { width: 125px; height: 148px; top: 18px; left: 24px; transform: rotate(14deg); }
+  .card-a strong { font-size: 17px; }
+  .art-star { font-size: 85px; top: -65px; right: 12px !important; opacity: .9; }
+  .orbit, .art-grid { display: none; }
+  .hero-link { padding-bottom: 6px; }
+  .stats { gap: 7px; padding: 0; }
+  .stat { padding: 13px 8px; border-radius: 8px; }
+  .stat > span { font-size: 9px; white-space: nowrap; }
+  .stat strong { font-size: 24px; }
+  .event-visual { height: 118px; padding: 13px; }
+  .visual-type { font-size: 8px; letter-spacing: 1px; }
+  .event-number { font-size: 6px; letter-spacing: .5px; }
+  .category-tag { font-size: 8px; }
+  .event-body h3 { font-size: 12px; }
+}

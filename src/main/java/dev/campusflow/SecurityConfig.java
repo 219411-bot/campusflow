@@ -30,7 +30,7 @@ class SecurityConfig {
             .csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                 .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/", "/index.html", "/app.js", "/styles.css", "/favicon.svg", "/error").permitAll()
+                .requestMatchers("/", "/index.html", "/app.js", "/styles.css", "/colors.css", "/art/**", "/favicon.svg", "/error").permitAll()
                 .requestMatchers("/api/auth/csrf", "/api/auth/register").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/events", "/api/events/*", "/api/stats").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
